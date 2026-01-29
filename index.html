@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nekoojisan ポートフォリオ - プレビュー</title>
+  <style>
+    :root {
+      --color-bg-dark: #1a1a2e;
+      --color-bg-medium: #16213e;
+      --color-bg-light: #0f3460;
+      --color-accent-primary: #00d9a5;
+      --color-accent-secondary: #e94560;
+      --color-accent-gold: #ffd700;
+      --color-text-primary: #ffffff;
+      --color-text-secondary: #a0a0a0;
+      --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--color-bg-dark);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      cursor: crosshair;
+    }
+    .rpg-message {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--color-bg-dark); border: 3px double var(--color-accent-gold);
+      padding: 12px 24px; font-size: 1.1rem; color: var(--color-accent-gold);
+      z-index: 1000; opacity: 0; pointer-events: none;
+      transition: opacity 300ms var(--ease-smooth);
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+    .rpg-message.is-visible { opacity: 1; }
+    .hero {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(ellipse at center, var(--color-bg-medium) 0%, var(--color-bg-dark) 70%);
+      text-align: center; padding: 2rem;
+    }
+    .hero__content { max-width: 600px; }
+    .hero__avatar { margin-bottom: 2rem; }
+    .hero__avatar img {
+      border: 4px double var(--color-accent-gold); border-radius: 50%;
+      box-shadow: 0 0 30px rgba(0, 217, 165, 0.3); width: 150px; height: 150px;
+    }
+    .hero__title {
+      font-size: clamp(2rem, 8vw, 3.5rem); font-weight: bold;
+      margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(0, 217, 165, 0.5);
+    }
+    .hero__subtitle { font-size: 1.2rem; color: var(--color-text-secondary); margin-bottom: 2rem; }
+    .btn {
+      display: inline-block; background: var(--color-bg-light); color: var(--color-accent-gold);
+      border: 3px double var(--color-accent-gold); padding: 1rem 2rem;
+      font-size: 1.1rem; font-weight: bold; cursor: pointer; text-decoration: none;
+      transition: all 300ms var(--ease-smooth);
+    }
+    .btn:hover {
+      background: var(--color-accent-gold); color: var(--color-bg-dark);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    }
+    .map {
+      min-height: 100vh; padding: 3rem 1rem;
+      background: radial-gradient(ellipse at 30% 20%, rgba(15, 52, 96, 0.5) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(15, 52, 96, 0.5) 0%, transparent 50%),
+        var(--color-bg-dark);
+    }
+    .map__title {
+      text-align: center; font-size: 1.5rem; color: var(--color-accent-gold);
+      margin-bottom: 2rem; letter-spacing: 0.3em;
+    }
+    .map__container {
+      position: relative; max-width: 800px; width: 100%; height: 550px; margin: 0 auto;
+      background: radial-gradient(circle at 20% 30%, rgba(0, 217, 165, 0.05) 0%, transparent 30%),
+        radial-gradient(circle at 80% 70%, rgba(255, 215, 0, 0.05) 0%, transparent 30%);
+      border: 2px solid rgba(0, 217, 165, 0.2); border-radius: 8px;
+    }
+    .map__paths {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+    }
+    .path { stroke: var(--color-accent-primary); stroke-width: 0.4; stroke-dasharray: 2 2; fill: none; opacity: 0.4; }
+    .room {
+      position: absolute; left: var(--x); top: var(--y); transform: translate(-50%, -50%);
+      width: 100px; padding: 0.75rem; background: #1a1a2e; border: 4px double #ffd700;
+      text-align: center; cursor: pointer; transition: all 300ms var(--ease-smooth);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 215, 0, 0.3);
+      z-index: 10;
+    }
+    .room:hover {
+      filter: brightness(1.3);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 215, 0, 0.5), 0 0 50px rgba(0, 217, 165, 0.3);
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+    .room__icon { font-size: 1.8rem; margin-bottom: 0.3rem; }
+    .room__name { font-size: 0.75rem; font-weight: bold; }
+    .room--treasure { border-color: var(--color-accent-secondary); box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(233, 69, 96, 0.3); }
+    .room--treasure:hover { box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 0 30px rgba(233, 69, 96, 0.5); }
+    .modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden; transition: all 300ms var(--ease-smooth);
+    }
+    .modal.is-open { opacity: 1; visibility: visible; }
+    .modal__overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); }
+    .modal__window {
+      position: relative; width: 90%; max-width: 500px; max-height: 80vh;
+      background: var(--color-bg-dark); border: 4px double var(--color-accent-gold);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.3);
+      overflow: hidden; transform: scale(0.9); transition: transform 300ms var(--ease-smooth);
+    }
+    .modal.is-open .modal__window { transform: scale(1); }
+    .modal__header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem; border-bottom: 2px solid var(--color-accent-gold); background: var(--color-bg-medium);
+    }
+    .modal__title { font-size: 1rem; color: var(--color-accent-gold); }
+    .modal__close {
+      background: none; border: 2px solid var(--color-text-secondary); color: var(--color-text-secondary);
+      padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.8rem; transition: all 300ms var(--ease-smooth);
+    }
+    .modal__close:hover { border-color: var(--color-accent-gold); color: var(--color-accent-gold); }
+    .modal__content { padding: 1rem; overflow-y: auto; max-height: 60vh; }
+    .content-card {
+      background: var(--color-bg-medium); border: 2px solid var(--color-bg-light);
+      padding: 0.8rem; margin-bottom: 0.8rem; transition: all 300ms var(--ease-smooth);
+    }
+    .content-card:hover { border-color: var(--color-accent-primary); }
+    .content-card__title { font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .content-card__link { color: var(--color-accent-primary); text-decoration: none; font-size: 0.85rem; }
+    .content-card__link:hover { text-decoration: underline; }
+    @media (max-width: 600px) {
+      .map__container { height: 650px; }
+      .room { width: 85px; padding: 0.5rem; }
+      .room__icon { font-size: 1.5rem; }
+      .room__name { font-size: 0.65rem; }
+    }
+    .screen-transition {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 9999; opacity: 0; pointer-events: none;
+      transition: opacity 0.6s ease-in-out;
+    }
+    .screen-transition.is-active { opacity: 1; pointer-events: auto; }
+    .screen-transition__text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      color: var(--color-accent-gold); font-size: 1.5rem;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.8); opacity: 0;
+      transition: opacity 0.3s ease-in-out 0.4s;
+    }
+    .screen-transition.is-active .screen-transition__text { opacity: 1; }
+    .fullscreen-viewer {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 200; display: flex; flex-direction: column;
+      opacity: 0; visibility: hidden; transition: opacity 0.5s ease-in-out;
+    }
+    .fullscreen-viewer.is-open { opacity: 1; visibility: visible; }
+    .fullscreen-viewer__header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.5rem; background: var(--color-bg-dark);
+      border-bottom: 2px solid var(--color-accent-gold);
+    }
+    .fullscreen-viewer__title { color: var(--color-accent-gold); font-size: 1.1rem; }
+    .fullscreen-viewer__close {
+      background: none; border: 2px solid var(--color-accent-gold);
+      color: var(--color-accent-gold); padding: 0.5rem 1rem;
+      cursor: pointer; font-size: 0.9rem; transition: all 300ms var(--ease-smooth);
+    }
+    .fullscreen-viewer__close:hover { background: var(--color-accent-gold); color: var(--color-bg-dark); }
+    .fullscreen-viewer__content { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .fullscreen-viewer__video { width: 100%; max-width: 1200px; aspect-ratio: 16 / 9; }
+    .fullscreen-viewer__video iframe { width: 100%; height: 100%; border: none; }
+  </style>
+</head>
+<body>
+  <div id="screen-transition" class="screen-transition">
+    <div class="screen-transition__text">▼ ダンジョンへ移動中... ▼</div>
+  </div>
+  <div id="rpg-message" class="rpg-message"></div>
+
+  <section class="hero" id="hero">
+    <div class="hero__content">
+      <div class="hero__avatar">
+        <img src="https://placehold.co/150x150/1a1a2e/00d9a5?text=🐼" alt="nekoojisan">
+      </div>
+      <h1 class="hero__title">渇望を、魔法に。</h1>
+      <p class="hero__subtitle">AI創作の冒険へようこそ</p>
+      <a href="#map" class="btn" id="start-btn">▶ 冒険を始める</a>
+    </div>
+  </section>
+
+  <section class="map" id="map">
+    <h2 class="map__title">- DUNGEON MAP -</h2>
+    <div class="map__container">
+      <svg class="map__paths" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M18 12 L55 8" class="path"/><path d="M55 8 L82 18" class="path"/>
+        <path d="M18 12 L12 42" class="path"/><path d="M55 8 L48 38" class="path"/>
+        <path d="M82 18 L78 48" class="path"/><path d="M12 42 L48 38" class="path"/>
+        <path d="M48 38 L78 48" class="path"/><path d="M12 42 L22 72" class="path"/>
+        <path d="M48 38 L55 72" class="path"/><path d="M78 48 L55 72" class="path"/>
+        <path d="M22 72 L55 72" class="path"/><path d="M55 72 L55 88" class="path"/>
+      </svg>
+      <div class="room" data-room="movie" style="--x: 18%; --y: 12%;"><div class="room__icon">🎬</div><div class="room__name">AI MOVIE</div></div>
+      <div class="room" data-room="illust" style="--x: 55%; --y: 8%;"><div class="room__icon">🎨</div><div class="room__name">イラスト</div></div>
+      <div class="room" data-room="game" style="--x: 82%; --y: 18%;"><div class="room__icon">🎮</div><div class="room__name">ゲーム</div></div>
+      <div class="room" data-room="education" style="--x: 12%; --y: 42%;"><div class="room__icon">📚</div><div class="room__name">教材</div></div>
+      <div class="room" data-room="manga" style="--x: 48%; --y: 38%;"><div class="room__icon">📖</div><div class="room__name">マンガ</div></div>
+      <div class="room" data-room="web" style="--x: 78%; --y: 48%;"><div class="room__icon">🌐</div><div class="room__name">Web制作</div></div>
+      <div class="room" data-room="about" style="--x: 22%; --y: 72%;"><div class="room__icon">👤</div><div class="room__name">自己紹介</div></div>
+      <div class="room room--treasure" data-room="contact" style="--x: 55%; --y: 88%;"><div class="room__icon">💎</div><div class="room__name">宝物庫</div></div>
+    </div>
+  </section>
+
+  <div class="fullscreen-viewer" id="fullscreen-viewer">
+    <div class="fullscreen-viewer__header">
+      <h3 class="fullscreen-viewer__title">🎬 AI MOVIE の部屋</h3>
+      <button class="fullscreen-viewer__close" onclick="closeFullscreen()">✕ 部屋を出る</button>
+    </div>
+    <div class="fullscreen-viewer__content">
+      <div class="fullscreen-viewer__video">
+        <iframe id="youtube-player" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal__overlay" onclick="closeModal()"></div>
+    <div class="modal__window">
+      <div class="modal__header">
+        <h3 class="modal__title" id="modal-title"></h3>
+        <button class="modal__close" onclick="closeModal()">✕ 部屋を出る</button>
+      </div>
+      <div class="modal__content" id="modal-content"></div>
+    </div>
+  </div>
+
+  <script>
+    const rpgMessageEl = document.getElementById('rpg-message');
+    let messageTimeout = null;
+    function showRpgMessage(text, duration = 2000) {
+      if (messageTimeout) clearTimeout(messageTimeout);
+      rpgMessageEl.textContent = '';
+      rpgMessageEl.classList.add('is-visible');
+      let i = 0;
+      function typeChar() {
+        if (i < text.length) { rpgMessageEl.textContent += text.charAt(i); i++; setTimeout(typeChar, 50); }
+        else { messageTimeout = setTimeout(() => rpgMessageEl.classList.remove('is-visible'), duration); }
+      }
+      typeChar();
+    }
+
+    document.getElementById('start-btn').addEventListener('click', (e) => {
+      e.preventDefault();
+      const transitionEl = document.getElementById('screen-transition');
+      transitionEl.classList.add('is-active');
+      setTimeout(() => { window.scrollTo(0, document.getElementById('map').offsetTop); }, 600);
+      setTimeout(() => { transitionEl.classList.remove('is-active'); showRpgMessage('ダンジョンに到着した！'); }, 1200);
+    });
+
+    const youtubeData = { mainVideo: '1QFEYXvfuR8', title: '🎬 AI MOVIE の部屋に入った！' };
+    const roomData = {
+      illust: { title: '🎨 AI イラストの部屋に入った！', content: '<p style="color:#a0a0a0">「作品を発見した！」</p><div class="content-card"><div class="content-card__title">🎨 イラストギャラリー</div><p style="color:#a0a0a0;font-size:0.85rem">（後日追加）</p></div>' },
+      game: { title: '🎮 AI ゲームの部屋に入った！', content: '<p style="color:#a0a0a0">「ゲームを発見した！」</p><div class="content-card"><div class="content-card__title">🎮 ゲーム作品</div><p style="color:#a0a0a0;font-size:0.85rem">（後日追加）</p></div>' },
+      education: { title: '📚 教材の部屋に入った！', content: '<p style="color:#a0a0a0">「知識の宝物を発見した！」</p><div class="content-card"><div class="content-card__title">🧠 Brain 教材</div><a href="https://brain-market.com/u/nekoojisan/a/b2ETM3IjMgoTZsNWa0JXY" class="content-card__link" target="_blank">→ 宝物を手に入れる</a></div><div class="content-card"><div class="content-card__title">📝 note 記事</div><a href="https://note.com/nekoojisan37/n/n92419d14a919" class="content-card__link" target="_blank">→ 宝物を手に入れる</a></div>' },
+      manga: { title: '📖 AI マンガの部屋に入った！', content: '<p style="color:#a0a0a0">「マンガを発見した！」</p><div class="content-card"><div class="content-card__title">📖 マンガ作品</div><p style="color:#a0a0a0;font-size:0.85rem">（後日追加）</p></div>' },
+      web: { title: '🌐 Web制作の部屋に入った！', content: '<p style="color:#a0a0a0">「制作実績を発見した！」</p><div class="content-card"><div class="content-card__title">🌐 Webサイト制作実績</div><p style="color:#a0a0a0;font-size:0.85rem">（後日追加）</p></div>' },
+      about: { title: '👤 自己紹介の部屋に入った！', content: '<p style="color:#a0a0a0">「nekoojisan のステータスを発見した！」</p><div class="content-card"><div class="content-card__title">nekoojisan</div><p style="color:#a0a0a0;font-size:0.85rem">AI創作クリエイター。MOVIE、イラスト、ゲーム、教材、マンガ、Web制作など幅広く活動中。</p></div><div class="content-card"><div class="content-card__title">✨ LUMINOUS</div><a href="https://luminous-lp.netlify.app" class="content-card__link" target="_blank">→ サービスを見る</a></div>' },
+      contact: { title: '💎 宝物庫に入った！', content: '<p style="color:#a0a0a0">「連絡先を発見した！」</p><div class="content-card"><div class="content-card__title">💬 公式LINE</div><a href="#" class="content-card__link">→ 友だち追加する</a></div><div class="content-card"><div class="content-card__title">🐦 X / 🧵 Threads</div><a href="#" class="content-card__link">→ フォローする</a></div>' }
+    };
+
+    const modalEl = document.getElementById('modal');
+    const modalTitleEl = document.getElementById('modal-title');
+    const modalContentEl = document.getElementById('modal-content');
+    const fullscreenEl = document.getElementById('fullscreen-viewer');
+    const youtubePlayer = document.getElementById('youtube-player');
+
+    document.querySelectorAll('.room').forEach(room => {
+      room.addEventListener('click', () => {
+        const roomId = room.dataset.room;
+        if (roomId === 'movie') {
+          showRpgMessage(youtubeData.title);
+          setTimeout(() => {
+            youtubePlayer.src = `https://www.youtube.com/embed/${youtubeData.mainVideo}?autoplay=1`;
+            fullscreenEl.classList.add('is-open');
+            document.body.style.overflow = 'hidden';
+          }, 1000);
+          return;
+        }
+        const data = roomData[roomId];
+        if (!data) return;
+        showRpgMessage(data.title);
+        setTimeout(() => {
+          modalTitleEl.textContent = data.title;
+          modalContentEl.innerHTML = data.content;
+          modalEl.classList.add('is-open');
+          document.body.style.overflow = 'hidden';
+        }, 1000);
+      });
+    });
+
+    function closeFullscreen() {
+      fullscreenEl.classList.remove('is-open');
+      youtubePlayer.src = '';
+      document.body.style.overflow = '';
+      showRpgMessage('冒険を続ける...');
+    }
+    function closeModal() {
+      modalEl.classList.remove('is-open');
+      document.body.style.overflow = '';
+      showRpgMessage('冒険を続ける...');
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (fullscreenEl.classList.contains('is-open')) closeFullscreen();
+        if (modalEl.classList.contains('is-open')) closeModal();
+      }
+    });
+    window.addEventListener('load', () => setTimeout(() => showRpgMessage('ようこそ、冒険者よ...'), 500));
+  </script>
+</body>
+</html>
